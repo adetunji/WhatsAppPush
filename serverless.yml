@@ -1,0 +1,81 @@
+service: whatsapppush
+
+custom:
+  tableName: 'Templates'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["TemplatesDynamoDBTable", "Arn" ] }
+  environment:
+    TEMPLATES_TABLE: ${self:custom.tableName}
+
+
+functions:
+  homePage:
+    handler: handlers/handler.homePage
+    events:
+      - http:
+          path: '/'
+          method: get
+  createTemplates:
+    handler: handlers/handler.createTemplates
+    events:
+      - http:
+          path: '/templates'
+          method: post
+  updateTemplates:
+    handler: handlers/handler.updateTemplates
+    events:
+      - http:
+          path: '/templates/{user_id}/{template_id}'
+          method: put
+  deleteTemplates:
+    handler: handlers/handler.deleteTemplates
+    events:
+      - http:
+          path: '/templates/{user_id}/{template_id}'
+          method: delete
+  detailsTemplates:
+    handler: handlers/handler.detailsTemplates
+    events:
+      - http:
+          path: '/templates/{user_id}/{template_id}'
+          method: get
+  listTemplates:
+    handler: handlers/handler.listTemplates
+    events:
+      - http:
+          path: '/templates/{user_id}'
+          method: get
+resources:
+  Resources:
+    TemplatesDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: template_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: template_id
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.tableName}
